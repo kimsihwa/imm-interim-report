@@ -8,6 +8,8 @@ Repository for IMM interim report
 
 - use a memorable and informative name for the project folder / repo. This repo is called `myrepo3`, but in future, you should use a name that will remind you of the repo's contents and purpose, even if it's ephemeral / temporary. Here, you could use something like `imm-interim-report`
 - right now the `clean_data` function prints a bunch of dataframes to the console, which can't be necessary. 
+- Data Lab has shifted from using RMarkdown to using [Quarto](https://quarto.org/), which is more flexible and powerful, and better documented. I'd recommend reading up on it and shifting to using it for your analytical reports. 
+- A general recommendation for your analysis workflow, especially since you're already using markdown for your reports, is to write more plain text notes as you work through the analysis. I often find that the little questions I'm asking and little answers I uncover as I go along are a critical input to the report, and it's easy to forget them if I don't write them down.
 - I appreciate the creativity in the way you're playing with the outputs of the logistic regression, but we should definitely talk it through!
   + The scale range setup used for the other plots doesn't work with the logistic coefficients because they're not actually bounded by 0 and 1. The predictive approach you hint at toward the end makes more sense in this context. 
   + All of the effect estimates for binary outcomes are outputs from logistic regressions, so they're all on the log-odds scale. 
