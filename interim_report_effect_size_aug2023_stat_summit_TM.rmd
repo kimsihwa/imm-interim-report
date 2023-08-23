@@ -16,14 +16,13 @@ knitr::opts_knit$set(root.dir = here::here())
 
 
 ```{r load-packages}
-
 pacman::p_load(
   "tidyverse",
   "qualtr",
   "salesforcer",
   "glue",
-  "tidytext", 
-  "lubridate", 
+  "tidytext",
+  "lubridate",
   "pander",
   "infer",
   "effsize"
@@ -44,13 +43,12 @@ source("Z:/FSC Pilot - CCDF/Analysis/rct-analysis/R/pipeline/rct_prep.R")
 
 # RUN PIPELINE ------------------------------------------------------------
 
-dat_raw <- load_data(use_cache = TRUE) # sometimes first time running script returns an error for some reason that I cannot pinpoint.... 
-                                      # try running twice
+dat_raw <- load_data(use_cache = TRUE) # sometimes first time running script returns an error for some reason that I cannot pinpoint....
+# try running twice
 
 dat_clean <- clean_data(dat_raw, use_cache = FALSE)
 
 dat_rct_prep <- rct_prep(dat_clean, use_cache = FALSE)
-
 ```
 
 ## Average change
@@ -59,7 +57,6 @@ dat_rct_prep <- rct_prep(dat_clean, use_cache = FALSE)
 - RIGHT: Average change as a proportion of the scale range to let us compare changes across outcomes 
 
 ```{r tibble}
-
 d_pre_emp <- tibble::tribble(
   ~outcome, ~coefficient, ~estimate, ~std_error, ~t, ~p,
   "Self Esteem", "Intercept", .6301, .4509, 1.397, .164,
@@ -89,50 +86,47 @@ d_ehs <- tibble::tribble(
   "Goal Orientation", "Intercept", -0.2023, 0.2869, -0.705, 0.482,
   "Goal Orientation", "Treatment", 1.7150, 0.3926, 4.368, 2.37e-05
 )
-
-
 ```
 
 ```{r average-graph}
-
 # pre-employability skills
 
-dplt_01 <- d_pre_emp %>% 
-  select(outcome, coefficient, estimate) %>% 
-  pivot_wider(names_from = coefficient, values_from = estimate) %>% 
+dplt_01 <- d_pre_emp %>%
+  select(outcome, coefficient, estimate) %>%
+  pivot_wider(names_from = coefficient, values_from = estimate) %>%
   rename(
     treatment_effect = `Treatment`,
     control = `Intercept`
-  ) %>% 
+  ) %>%
   mutate(
     treatment = treatment_effect + control,
     scale_range = case_when(
-      outcome == "Self Esteem" ~ 30 - 5, # lowest end of scale - 1 so range covers the full scale   
+      outcome == "Self Esteem" ~ 30 - 5, # lowest end of scale - 1 so range covers the full scale
       outcome == "Resilience" ~ 5 - 0,
       outcome == "Emotional Intelligence" ~ 45 - 8,
       outcome == "Locus of Control" ~ 45 - 8,
       outcome == "Healthy Behaviour" ~ 15 - 2,
       outcome == "Mental Health" ~ 12 - -1
     )
-  ) %>% 
+  ) %>%
   pivot_longer(
     cols = c(control, treatment),
     names_to = "group",
     values_to = "Scale units"
-  ) %>% 
+  ) %>%
   mutate(
     `% of scale range` = `Scale units` / scale_range * 100
-  ) %>% 
+  ) %>%
   pivot_longer(
     cols = c(`Scale units`, `% of scale range`),
     names_to = "transformation",
     values_to = "observed_change"
-  ) %>% 
+  ) %>%
   mutate(
     transformation = fct_inorder(transformation)
   )
 
-dplt_01 %>% 
+dplt_01 %>%
   ggplot(aes(y = group, x = observed_change)) +
   facet_grid(rows = vars(outcome), cols = vars(transformation), scales = "free_x", switch = "y") +
   geom_segment(aes(xend = 0, yend = after_stat(y))) +
@@ -146,20 +140,20 @@ dplt_01 %>%
   ) +
   labs(
     x = "Average Change in Score",
-    y =NULL
+    y = NULL
   ) +
   bptheme::theme_blueprint(grid = "Xxy", grid_col = "grey80") +
   theme(strip.placement = "outside")
-  
-# EHS 
 
-dplt_02 <- d_ehs %>% 
-  select(outcome, coefficient, estimate) %>% 
-  pivot_wider(names_from = coefficient, values_from = estimate) %>% 
+# EHS
+
+dplt_02 <- d_ehs %>%
+  select(outcome, coefficient, estimate) %>%
+  pivot_wider(names_from = coefficient, values_from = estimate) %>%
   rename(
     treatment_effect = `Treatment`,
     control = `Intercept`
-  ) %>% 
+  ) %>%
   mutate(
     treatment = treatment_effect + control,
     scale_range = case_when(
@@ -169,84 +163,82 @@ dplt_02 <- d_ehs %>%
       outcome == "Utilization" ~ 10 - -1,
       outcome == "Goal Orientation" ~ 10 - -1
     )
-  ) %>% 
-pivot_longer(
-  cols = c(control, treatment),
-  names_to = "group",
-  values_to = "EHS Scale units"
-) %>% 
+  ) %>%
+  pivot_longer(
+    cols = c(control, treatment),
+    names_to = "group",
+    values_to = "EHS Scale units"
+  ) %>%
   mutate(
     `% of scale range` = `EHS Scale units` / scale_range * 100
-    ) %>% 
+  ) %>%
   pivot_longer(
     cols = c(`EHS Scale units`, `% of scale range`),
     names_to = "transformation",
     values_to = "observed_change"
-  ) %>% 
+  ) %>%
   mutate(
     transformation = fct_inorder(transformation)
   )
-    
-dplt_02 %>% 
+
+dplt_02 %>%
   ggplot(aes(y = group, x = observed_change)) +
   facet_grid(rows = vars(outcome), cols = vars(transformation), scales = "free_x", switch = "y") +
   geom_segment(aes(xend = 0, yend = after_stat(y))) +
   geom_point(shape = 21, size = 3, fill = "#0000FF") +
-   geom_text(
-        aes(label = round(observed_change, 1)),
-        position = position_nudge(y = .12)
-    ) +
-    scale_x_continuous(
-        expand = expansion(mult = c(.1, .1))
-    ) +
-    labs(
-        x = "Average Change in Score",
-        y = NULL
-    ) +
-    bptheme::theme_blueprint(grid = "Xxy", grid_col = "grey80") +
-    theme(strip.placement = "outside")
-
-
+  geom_text(
+    aes(label = round(observed_change, 1)),
+    position = position_nudge(y = .12)
+  ) +
+  scale_x_continuous(
+    expand = expansion(mult = c(.1, .1))
+  ) +
+  labs(
+    x = "Average Change in Score",
+    y = NULL
+  ) +
+  bptheme::theme_blueprint(grid = "Xxy", grid_col = "grey80") +
+  theme(strip.placement = "outside")
 ```
 
 # What does it mean about CCDF's model in general?
 
 ```{r distribution}
-
-dplt_03 <- d_pre_emp %>% 
-    mutate(
-        scale_range = case_when(
-      outcome == "Self Esteem" ~ 30 - 5,   
+dplt_03 <- d_pre_emp %>%
+  mutate(
+    scale_range = case_when(
+      outcome == "Self Esteem" ~ 30 - 5,
       outcome == "Resilience" ~ 5 - 0,
       outcome == "Emotional Intelligence" ~ 45 - 8,
       outcome == "Locus of Control" ~ 45 - 8,
       outcome == "Healthy Behaviour" ~ 15 - 2,
       outcome == "Mental Health" ~ 12 - -1
-        ),
-        estimate__range_pct = estimate / scale_range * 100,
-        std_error__range_pct = std_error / scale_range * 100
-    ) |>
-    rename(
-        estimate__scale_units = estimate,
-        std_error__scale_units = std_error
-    ) |>
-    pivot_longer(
-        cols = matches("estimate|std_error"),
-        names_to = c(".value", "transformation"),
-        names_pattern = "(.*)__(.*)"
-    ) |>
-    mutate(
-        transformation = fct_inorder(transformation)
-    )
+    ),
+    estimate__range_pct = estimate / scale_range * 100,
+    std_error__range_pct = std_error / scale_range * 100
+  ) |>
+  rename(
+    estimate__scale_units = estimate,
+    std_error__scale_units = std_error
+  ) |>
+  pivot_longer(
+    cols = matches("estimate|std_error"),
+    names_to = c(".value", "transformation"),
+    names_pattern = "(.*)__(.*)"
+  ) |>
+  mutate(
+    transformation = fct_inorder(transformation)
+  )
 
-dplt_03 %>% 
+dplt_03 %>%
   ggplot(aes(y = coefficient)) +
-    facet_grid(rows = vars(outcome), cols = vars(transformation), switch = "y", scales = "free_x") +
-    stat_halfeye(
-    aes(xdist = dist_normal(estimate, std_error),
-        fill = after_stat(x > 0)
-  ),
-  normalize = "panels"
+  facet_grid(rows = vars(outcome), cols = vars(transformation), switch = "y", scales = "free_x") +
+  stat_halfeye(
+    aes(
+      xdist = dist_normal(estimate, std_error),
+      fill = after_stat(x > 0)
+    ),
+    normalize = "panels"
   ) +
   geom_text(
     aes(
@@ -254,18 +246,18 @@ dplt_03 %>%
     ),
     x = 0,
     hjust = 1.1,
-    position = position_nudge(x = -.1, y =.12),
+    position = position_nudge(x = -.1, y = .12),
   ) +
   geom_vline(xintercept = 0, color = "grey20", lty = 2) +
   scale_fill_manual(
-     values = c("grey75", "skyblue2"),
-     name = "Effect Direction",
-     breaks = c(FALSE, TRUE),
-     labels = c(
-       "Negative",
-       "Positive"
-     ),
-     guide = guide_legend()
+    values = c("grey75", "skyblue2"),
+    name = "Effect Direction",
+    breaks = c(FALSE, TRUE),
+    labels = c(
+      "Negative",
+      "Positive"
+    ),
+    guide = guide_legend()
   ) +
   labs(
     x = "Magnitude",
@@ -273,13 +265,11 @@ dplt_03 %>%
   ) +
   bptheme::theme_blueprint(grid = "Xxy", grid_col = "grey80") +
   theme(strip.placement = "outside")
-
 ```
 
 # Employment, education, and social assistance receipt 
 
 ```{r binary-var}
-
 d_emp <- tibble::tribble(
   ~outcome, ~coefficient, ~estimate, ~str_error, ~t, ~p,
   "Employment", "Intercept", 0.27143, 0.05622, 4.828, 3.44e-06,
@@ -290,99 +280,107 @@ d_emp <- tibble::tribble(
   "Social Assistance Receipt", "Treatment", -0.01121, 0.08240, -0.136, 0.892
 )
 
-d_emp_plt <- d_emp %>% 
-  select(outcome, coefficient, estimate) %>% 
-  pivot_wider(names_from = coefficient, values_from = estimate) %>% 
+d_emp_plt <- d_emp %>%
+  select(outcome, coefficient, estimate) %>%
+  pivot_wider(names_from = coefficient, values_from = estimate) %>%
   rename(
     treatment_effect = `Treatment`,
     control = `Intercept`
-  ) %>% 
-  mutate(treatment = treatment_effect + control,
-         scale_range = case_when(
-           outcome == "Employment" ~ 1 - 0,
-           outcome == "Enrolled in Education" ~ 1 - 0,
-           outcome == "Social Assistance Receipt" ~ 1 - 0)) %>% 
+  ) %>%
+  mutate(
+    treatment = treatment_effect + control,
+    scale_range = case_when(
+      outcome == "Employment" ~ 1 - 0,
+      outcome == "Enrolled in Education" ~ 1 - 0,
+      outcome == "Social Assistance Receipt" ~ 1 - 0
+    )
+  ) %>%
   pivot_longer(
     cols = c(control, treatment),
     names_to = "group",
     values_to = "Scale units"
-  ) %>% 
+  ) %>%
   mutate(
     `% of scale range` = `Scale units` / scale_range * 100
-  ) %>% 
+  ) %>%
   pivot_longer(
     cols = c(`Scale units`, `% of scale range`),
     names_to = "transformation",
-    values_to = "observed_change" 
-  ) %>% 
+    values_to = "observed_change"
+  ) %>%
   mutate(
     transformation = fct_inorder(transformation)
   )
 
-d_emp_plt %>% 
-    ggplot(aes(y = group, x = observed_change)) +
-    facet_grid(rows = vars(outcome), cols = vars(transformation), scales = "free_x", switch = "y") +
-    geom_segment(aes(xend = 0, yend = after_stat(y))) +
-    geom_point(shape = 21, size = 3, fill = "#0000FF") +
-    geom_text(
-        aes(label = round(observed_change, 1)),
-        position = position_nudge(y = .12)
-    ) +
-    scale_x_continuous(
-        expand = expansion(mult = c(.1, .1))
-    ) +
-    labs(
-        x = "Average Change in Score",
-        y = NULL
-    ) +
-    bptheme::theme_blueprint(grid = "Xxy", grid_col = "grey80") +
-    theme(strip.placement = "outside")
+d_emp_plt %>%
+  ggplot(aes(y = group, x = observed_change)) +
+  facet_grid(rows = vars(outcome), cols = vars(transformation), scales = "free_x", switch = "y") +
+  geom_segment(aes(xend = 0, yend = after_stat(y))) +
+  geom_point(shape = 21, size = 3, fill = "#0000FF") +
+  geom_text(
+    aes(label = round(observed_change, 1)),
+    position = position_nudge(y = .12)
+  ) +
+  scale_x_continuous(
+    expand = expansion(mult = c(.1, .1))
+  ) +
+  labs(
+    x = "Average Change in Score",
+    y = NULL
+  ) +
+  bptheme::theme_blueprint(grid = "Xxy", grid_col = "grey80") +
+  theme(strip.placement = "outside")
 
 ## Generalized lienar model
 
-job_employed <- dat_rct_prep$job_employed %>% 
-  select(enrollment, job_employed, survey_name, experiment_assignment_group) %>% 
-  mutate(survey = str_extract(survey_name, "Baseline|Program Exit|3 Months"),
-         survey = factor(survey)) %>% 
-    select(-survey_name) %>% 
-  mutate(experiment_assignment_group = factor(experiment_assignment_group)) %>% 
+job_employed <- dat_rct_prep$job_employed %>%
+  select(enrollment, job_employed, survey_name, experiment_assignment_group) %>%
+  mutate(
+    survey = str_extract(survey_name, "Baseline|Program Exit|3 Months"),
+    survey = factor(survey)
+  ) %>%
+  select(-survey_name) %>%
+  mutate(experiment_assignment_group = factor(experiment_assignment_group)) %>%
   mutate(job_emp = case_when(
     job_employed == "Yes (employee and/or self-employed)" ~ 1,
     job_employed == "No" ~ 0,
     TRUE ~ NA
-  )) %>% 
-  select(-job_employed) %>% 
+  )) %>%
+  select(-job_employed) %>%
   pivot_wider(
     names_from = survey,
     values_from = job_emp
-  ) %>% 
+  ) %>%
   pivot_longer(
     cols = -c(enrollment, experiment_assignment_group),
     names_to = "survey",
     values_to = "job_emp"
-  ) %>% 
+  ) %>%
   pivot_wider(
     names_from = survey,
-    values_from = job_emp) %>% 
-  filter(!is.na(Baseline) & !is.na(`Program Exit`) & !is.na(`3 Months`)) %>% 
+    values_from = job_emp
+  ) %>%
+  filter(!is.na(Baseline) & !is.na(`Program Exit`) & !is.na(`3 Months`)) %>%
   mutate(assignment = case_when(
     experiment_assignment_group == "IMM+ Treatment group" ~ TRUE,
     experiment_assignment_group == "IMM+ Comparison group" ~ FALSE
-  )) %>% 
-  rename(enrollment_id = enrollment) %>% 
+  )) %>%
+  rename(enrollment_id = enrollment) %>%
   select(-experiment_assignment_group)
 
 # Conduct a logistic regression on the binary variable
 
-emp_glm <- glm(formula = `3 Months` ~ assignment, 
-               data = job_employed,
-               family = "binomial")
+emp_glm <- glm(
+  formula = `3 Months` ~ assignment,
+  data = job_employed,
+  family = "binomial"
+)
 
-# Print coefficients from logistic regression. These are logits. We can see effect of treatment on employment status at 3 month is positive. Being in treatment group increases the probability of being employed at 3 month.   
+# Print coefficients from logistic regression. These are logits. We can see effect of treatment on employment status at 3 month is positive. Being in treatment group increases the probability of being employed at 3 month.
 
 summary(emp_glm)$coefficients
 
-# source logit to probability conversion funtion 
+# source logit to probability conversion funtion
 
 source("https://sebastiansauer.github.io/Rcode/logit2prob.R")
 
@@ -394,10 +392,32 @@ logit2prob(coef(emp_glm))
 
 # logits_employed = intercept + b_employed*assignment (b_employed is given in logits)
 
-predict(emp_glm, data.frame(assignment = TRUE), type = "response") 
+predict(emp_glm, data.frame(assignment = TRUE), type = "response")
 
 predict(emp_glm, data.frame(assignment = FALSE), type = "response")
-
-# If in treatment group, chances of being employed at 3 month is 38% and for control group is about 27%
-
 ```
+
+```{r}
+grid <- tibble::tibble(
+  assignment = c(TRUE, FALSE)
+)
+
+pred <- predict(emp_glm, grid, type = "link", se.fit = TRUE)
+
+grid <- grid |>
+  mutate(
+    link = pred$fit,
+    se = pred$se.fit,
+    sim_link = map2(link, se, rnorm, n = 10000)
+  ) |>
+  unnest(sim_link) |>
+  mutate(
+    sim_prob = exp(sim_link) / (1 + exp(sim_link))
+  )
+
+grid |>
+  ggplot(aes(x = sim_prob, y = assignment)) +
+  stat_halfeye() +
+  scale_x_continuous(limits = c(0, 1))
+```
+
